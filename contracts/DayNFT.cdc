@@ -150,18 +150,18 @@ pub contract DayNFT: NonFungibleToken {
                     let newArray <- [<-newNFT]
                     self.NFTsDue[self.bestBid.recipient] <-! newArray
                 } else {
-                var newArray: @[NFT] <- []
-                var a = 0
-                var len = self.NFTsDue[self.bestBid.recipient]?.length!
-                while a < len {
-                    let nft <- self.NFTsDue[self.bestBid.recipient]?.removeFirst()!
-                    newArray.append(<-nft)
-                    a = a + 1
-                }
-                newArray.append(<-newNFT)
-                let old <- self.NFTsDue.remove(key: self.bestBid.recipient)
-                destroy old
-                self.NFTsDue[self.bestBid.recipient] <-! newArray
+                    var newArray: @[NFT] <- []
+                    var a = 0
+                    var len = self.NFTsDue[self.bestBid.recipient]?.length!
+                    while a < len {
+                        let nft <- self.NFTsDue[self.bestBid.recipient]?.removeFirst()!
+                        newArray.append(<-nft)
+                        a = a + 1
+                    }
+                    newArray.append(<-newNFT)
+                    let old <- self.NFTsDue.remove(key: self.bestBid.recipient)
+                    destroy old
+                    self.NFTsDue[self.bestBid.recipient] <-! newArray
                 }
 
                 // Replace bid
