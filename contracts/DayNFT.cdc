@@ -1,8 +1,8 @@
 // Implementation of the DayNFT contract
 
-import NonFungibleToken from "./NonFungibleToken.cdc"
-import MetadataViews from "./MetadataViews.cdc"
-import DateUtils from "./DateUtils.cdc"
+import NonFungibleToken from 0x1d7e57aa55817448
+import MetadataViews from 0x1d7e57aa55817448
+import DateUtils from 0xc0bcca6fd0fe81b0
 
 import FungibleToken from 0xf233dcee88fe0abe
 import FlowToken from 0x1654653399040a61
@@ -543,7 +543,7 @@ pub contract DayNFT: NonFungibleToken {
     }
 
     // Claim NFTs due to the user, and deposit them into their collection
-    access(contract) fun claimNFTs(address: Address): Int {
+    pub fun claimNFTs(address: Address): Int {
         var today = DateUtils.getDate()
         return self.claimNFTsWithToday(address: address, today: today)
     }
