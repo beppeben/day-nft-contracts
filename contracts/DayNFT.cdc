@@ -177,7 +177,7 @@ pub contract DayNFT: NonFungibleToken {
                 var a = 0
                 let len = self.NFTsDue[address]?.length!
                 while a < len {
-                    let nft <- self.NFTsDue[self.bestBid.recipient]?.removeFirst()!
+                    let nft <- self.NFTsDue[address]?.removeFirst()!
                     receiver.deposit(token: <-nft)
                     a = a + 1
                 }

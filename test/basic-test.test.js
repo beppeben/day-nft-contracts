@@ -2,7 +2,7 @@ import path from "path";
 import {emulator, init, getAccountAddress, mintFlow, getFlowBalance,
         deployContractByName, getContractAddress, sendTransaction, executeScript} from "flow-js-testing";
 
-jest.setTimeout(10000);
+jest.setTimeout(100000);
 
 async function deployAll() {
   var [deploymentResult, error] = await deployContractByName({name: "NonFungibleToken"});
@@ -49,12 +49,19 @@ describe("basic-test", ()=>{
     var [deploymentResult, error] = await deployContractByName({name: "DateUtils"});
 
     // check that the contract can successfully convert timestamps to days
-    const timestamp1 = Date.parse('04 Dec 2185 23:59:59 GMT')/1000
+    var timestamp1 = Date.parse('04 Dec 2185 23:59:59 GMT')/1000
     var [result,error] = await executeScript("get_date_from_timestamp", [timestamp1]);
     expect(result).toEqual({"day": 4, "month": 12, "year": 2185});
-    const timestamp2 = Date.parse('05 Dec 2185 00:00:01 GMT')/1000
+    var timestamp2 = Date.parse('05 Dec 2185 00:00:01 GMT')/1000
     var [result,error] = await executeScript("get_date_from_timestamp", [timestamp2]);
     expect(result).toEqual({"day": 5, "month": 12, "year": 2185});
+
+    var timestamp1 = Date.parse('04 Dec 2035 23:59:59 GMT')/1000
+    var [result,error] = await executeScript("get_date_from_timestamp", [timestamp1]);
+    expect(result).toEqual({"day": 4, "month": 12, "year": 2035});
+    var timestamp2 = Date.parse('05 Dec 2035 00:00:01 GMT')/1000
+    var [result,error] = await executeScript("get_date_from_timestamp", [timestamp2]);
+    expect(result).toEqual({"day": 5, "month": 12, "year": 2035});
   })
   
   test("workflow", async () => {    
@@ -79,6 +86,7 @@ describe("basic-test", ()=>{
     const day1 = [26, 1, 2021];
     const day2 = [27, 1, 2021];
     const day3 = [28, 1, 2021];
+    const day4 = [29, 1, 2021];
 
     // TODAY
     
@@ -223,6 +231,11 @@ describe("basic-test", ()=>{
 
 
     // DAY3
+    // bid on today's nft by bob (this should mint and assign a second nft to alice)
+    var args = [2.0, "hey you!!", day3, day3];
+    var [tx, error] = await sendTransaction("make_bid_test", [bob], args);
+    expect(error).toBeNull();
+
     // verify that alice has two NFTs to claim
     var [result,error] = await executeScript("read_nb_nfts_to_claim_test", [alice, day3]);
     expect(result).toEqual(2);
@@ -250,6 +263,78 @@ describe("basic-test", ()=>{
     // verify that 50% of it gets deposited into the contract's vault
     var [balance, error] = await getFlowBalance(myself);
     expect(balance).toEqual("1000000023.49400000");
+    
+    // verify that alice gets some of it (to claim: 0.5 + 10*50% /3*2)
+    var [result,error] = await executeScript("read_tokens_to_claim", [alice]);
+    expect(result).toEqual("3.83333332");
+
+    // same for bob (to claim: 0.5 + 10*50% /3*1)
+    var [result,error] = await executeScript("read_tokens_to_claim", [bob]);
+    expect(result).toEqual("2.16666666");
+
+    // bid on today's nft by bob
+    var args = [3.0, "hey you!!", day3, day3];
+    var [tx, error] = await sendTransaction("make_bid_test", [bob], args);
+    expect(error).toBeNull();
+
+
+    // DAY4
+    // bid on today's nft by alice
+    var args = [0.1, "new bid", day4, day4];
+    var [tx, error] = await sendTransaction("make_bid_test", [alice], args);
+    expect(error).toBeNull();
+
+    // verify that bob has one NFT to claim
+    var [result,error] = await executeScript("read_nb_nfts_to_claim_test", [bob, day4]);
+    expect(result).toEqual(1);
+
+    // verify that alice has zero NFTs to claim
+    var [result,error] = await executeScript("read_nb_nfts_to_claim_test", [alice, day4]);
+    expect(result).toEqual(0);
+
+    // claim NFTs for bob
+    var [result, error] = await sendTransaction("claim_nfts_test", [bob], [day4]);
+    expect(error).toBeNull();
+
+    // read bob's NFT ids
+    var [result,error] = await executeScript("read_collection_ids", [bob]);
+    expect(new Set(result)).toEqual(new Set([0, 3]));
+
+    // claim NFTs for alice
+    var [result, error] = await sendTransaction("claim_nfts_test", [alice], [day4]);
+    expect(error).toBeNull();
+
+    // alice should get a cut of bob's latest NFT price because she held two (3.83 + 3 * 50% / 3 * 2)
+    var [result,error] = await executeScript("read_tokens_to_claim", [alice]);
+    expect(result).toEqual("4.83333332");
+    
+    // claim tokens for alice
+    var [result, error] = await sendTransaction("claim_tokens", [alice], []);
+    expect(error).toBeNull();
+
+    // verify alice's balance
+    [balance, error] = await getFlowBalance(alice);
+    expect(balance).toEqual("9.73433332");
+    
+    // alice should have no tokens to claim
+    var [result,error] = await executeScript("read_tokens_to_claim", [alice]);
+    expect(result).toEqual("0.00000000");
+    
+    // bob should have some tokens to claim (from previous unclaimed and new assigned NFT)
+    var [result,error] = await executeScript("read_tokens_to_claim", [bob]);
+    expect(result).toEqual("2.66666666");
+
+    // claim tokens for bob
+    var [result, error] = await sendTransaction("claim_tokens", [bob], []);
+    expect(error).toBeNull();
+
+    // verify bob's balance
+    [balance, error] = await getFlowBalance(bob);
+    expect(balance).toEqual("37.16766666");
+
+    // bob should have no tokens to claim
+    var [result,error] = await executeScript("read_tokens_to_claim", [bob]);
+    expect(result).toEqual("0.00000000");
     
   })
 })
