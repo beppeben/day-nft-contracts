@@ -113,6 +113,7 @@ describe("basic-test", ()=>{
     var [result,error] = await executeScript("read_best_bid_test", [today]);
     expect(result.amount).toEqual("10.00000000");
     expect(result.user).toEqual(alice);
+    expect(result.title).toEqual("hello world");
 
     // make another bid by alice for a lower price
     var args = [1.5, "hey hey", today, today];
@@ -196,6 +197,7 @@ describe("basic-test", ()=>{
     // claim tokens (even if there's none)
     var [result, error] = await sendTransaction("claim_tokens", [bob], []);
     expect(error).toBeNull();
+    expect(result.events[2].data.amount).toEqual("0.00000000");
 
     // bid on today's nft by alice
     var args = [5.0, "hello world3", day1, day1];
@@ -220,6 +222,7 @@ describe("basic-test", ()=>{
     // claim tokens
     var [result, error] = await sendTransaction("claim_tokens", [bob], []);
     expect(error).toBeNull();
+    expect(result.events[2].data.amount).toEqual("2.50000000");
 
     // verify bob's balance has increased
     [balance, error] = await getFlowBalance(bob);

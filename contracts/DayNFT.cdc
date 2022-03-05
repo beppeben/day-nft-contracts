@@ -35,6 +35,9 @@ pub contract DayNFT: NonFungibleToken {
     // Event emitted when a user makes a bid
     pub event BidReceived(user: Address, date: DateUtils.Date, title: String)
 
+    // Event emitted when a user claims Flow tokens
+    pub event TokensClaimed(user: Address, amount: UFix64)
+
     // Resource containing data and logic around bids, minting and distribution
     pub resource ContractManager {
         // NFTs that can be claimed by users that won previous days' auction(s)
@@ -85,11 +88,13 @@ pub contract DayNFT: NonFungibleToken {
             if (today.equals(self.bestBid.date)) {
                 return PublicBid(amount: self.bestBid.vault.balance,
                                     user: self.bestBid.recipient,
-                                    date: today)
+                                    date: today,
+                                    title: self.bestBid.title)
             } else {
                 return PublicBid(amount: 0.0,
                                     user: Address(0x0),
-                                    date: today)
+                                    date: today,
+                                    title: "")
             }
         }
 
@@ -246,6 +251,8 @@ pub contract DayNFT: NonFungibleToken {
             // Pay amount
             let vault <- self.distributeVault.withdraw(amount: amountDue)
             receiver.deposit(from: <- vault)
+
+            emit TokensClaimed(user: address, amount: amountDue)
 
             return amountDue
         }
@@ -512,13 +519,16 @@ pub contract DayNFT: NonFungibleToken {
         pub let amount: UFix64
         pub let user: Address
         pub let date: DateUtils.Date
+        pub let title: String
 
         init(amount: UFix64, 
               user: Address,
-              date: DateUtils.Date) {
+              date: DateUtils.Date,
+              title: String) {
             self.amount = amount
             self.user = user
             self.date = date
+            self.title = title
         }
     }
 
