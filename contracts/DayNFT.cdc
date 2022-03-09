@@ -35,6 +35,9 @@ pub contract DayNFT: NonFungibleToken {
     // Event emitted when a user makes a bid
     pub event BidReceived(user: Address, date: DateUtils.Date, title: String)
 
+    // Event emitted when a user claims Flow tokens
+    pub event TokensClaimed(user: Address, amount: UFix64)
+
     // Resource containing data and logic around bids, minting and distribution
     pub resource ContractManager {
         // NFTs that can be claimed by users that won previous days' auction(s)
@@ -90,6 +93,15 @@ pub contract DayNFT: NonFungibleToken {
                 return PublicBid(amount: 0.0,
                                     user: Address(0x0),
                                     date: today)
+            }
+        }
+
+        // Get the best bid title for today's auction
+        pub fun getBestBidTitleWithToday(today: DateUtils.Date): String? {
+            if (today.equals(self.bestBid.date)) {
+                return self.bestBid.title
+            } else {
+                return nil
             }
         }
 
@@ -246,6 +258,8 @@ pub contract DayNFT: NonFungibleToken {
             // Pay amount
             let vault <- self.distributeVault.withdraw(amount: amountDue)
             receiver.deposit(from: <- vault)
+
+            emit TokensClaimed(user: address, amount: amountDue)
 
             return amountDue
         }
@@ -530,6 +544,16 @@ pub contract DayNFT: NonFungibleToken {
     // Make this public when testing
     access(contract) fun getBestBidWithToday(today: DateUtils.Date): PublicBid {
         return self.manager.getBestBidWithToday(today: today)
+    }
+
+    // Get the best bid title for today's auction
+    pub fun getBestBidTitle(): String? {
+        var today = DateUtils.getDate()
+        return self.getBestBidTitleWithToday(today: today)
+    }
+    // Make this public when testing
+    access(contract) fun getBestBidTitleWithToday(today: DateUtils.Date): String? {
+        return self.manager.getBestBidTitleWithToday(today: today)
     }
 
     // Verify if a user has any NFTs to claim after winning one or more auctions
