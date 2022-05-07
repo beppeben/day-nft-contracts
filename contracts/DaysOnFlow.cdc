@@ -19,7 +19,7 @@ pub contract DaysOnFlow: NonFungibleToken {
 
     // EVENTS
     pub event ContractInitialized()
-    pub event DOFMinted(id: UInt64, seriesId: UInt64, seriesImage: String, serial: UInt64)
+    pub event DOFMinted(id: UInt64, seriesId: UInt64, seriesImage: String, serial: UInt64, saleType: String)
     pub event Deposit(id: UInt64, to: Address?)
     pub event Withdraw(id: UInt64, from: Address?)
 
@@ -83,7 +83,7 @@ pub contract DaysOnFlow: NonFungibleToken {
             return nil
         }
 
-        init(_seriesDescription: String, _seriesId: UInt64, _seriesImage: String, _seriesName: String, _serial: UInt64) {
+        init(_seriesDescription: String, _seriesId: UInt64, _seriesImage: String, _seriesName: String, _serial: UInt64, _saleType: String) {
             self.id = DaysOnFlow.totalSupply
             self.seriesDescription = _seriesDescription
             self.seriesId = _seriesId
@@ -95,7 +95,8 @@ pub contract DaysOnFlow: NonFungibleToken {
                 id: self.id, 
                 seriesId: _seriesId, 
                 seriesImage: _seriesImage,
-                serial: _serial
+                serial: _serial,
+                saleType: _saleType
             )
 
             DaysOnFlow.totalSupply = DaysOnFlow.totalSupply + 1
@@ -268,7 +269,7 @@ pub contract DaysOnFlow: NonFungibleToken {
 
             for id in holder.getIDs() {
                 if self.dayNFTwlClaimed[id] != nil && !self.dayNFTwlClaimed[id]! {
-                    self.mint(address: address)
+                    self.mint(address: address, saleType: "DayNFT WL")
                     self.dayNFTwlClaimed[id] = true
                 }
             }
@@ -292,7 +293,7 @@ pub contract DaysOnFlow: NonFungibleToken {
                         .borrow<&FlowToken.Vault{FungibleToken.Receiver}>()
                         ?? panic("Could not borrow a reference to the Flow receiver")
             rec.deposit(from: <- vault)
-            self.mint(address: address)
+            self.mint(address: address, saleType: "WL")
             self.wlClaimed[address] = true            
         }
 
@@ -319,7 +320,7 @@ pub contract DaysOnFlow: NonFungibleToken {
                         .borrow<&FlowToken.Vault{FungibleToken.Receiver}>()
                         ?? panic("Could not borrow a reference to the Flow receiver")
             rec.deposit(from: <- vault)
-            self.mint(address: address)
+            self.mint(address: address, saleType: "Public")
             self.publicMinted = self.publicMinted + 1
         }
 
@@ -349,7 +350,7 @@ pub contract DaysOnFlow: NonFungibleToken {
         }
 
         // Mint an item
-        access(contract) fun mint(address: Address): UInt64 {
+        access(contract) fun mint(address: Address, saleType: String): UInt64 {
             // DOF collection
             let receiver = getAccount(address)
                             .getCapability(DaysOnFlow.CollectionPublicPath)
@@ -363,7 +364,8 @@ pub contract DaysOnFlow: NonFungibleToken {
                 _seriesId: self.seriesId,
                 _seriesImage: self.image,
                 _seriesName: self.name,
-                _serial: serial
+                _serial: serial,
+                _saleType: saleType
             ) 
             let id = token.id
 
