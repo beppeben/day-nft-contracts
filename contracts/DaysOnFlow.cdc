@@ -216,9 +216,9 @@ pub contract DaysOnFlow: NonFungibleToken {
         pub var totalSupply: UInt64
 
         // Keeps track of the DayNFT holders that have already claimed
-        pub let dayNFTwlClaimed: {UInt64: Bool}
+        access(self) let dayNFTwlClaimed: {UInt64: Bool}
         // Keeps track of the WL addresses that have already claimed
-        pub let wlClaimed: {Address: Bool}
+        access(self) let wlClaimed: {Address: Bool}
         // WL price
         pub let wlPrice: UFix64
         // Number of items available for the public sale
@@ -229,6 +229,28 @@ pub contract DaysOnFlow: NonFungibleToken {
         pub var publicMinted: UInt64
         // Account used to deposit payments
         pub let contractAddress: Address
+
+        // Get number of DayNFT WL that have been claimed vs total
+        pub fun dayNFTwlStats(): [Int] {
+            var claimed = 0
+            for wl in self.dayNFTwlClaimed.keys {
+                if self.dayNFTwlClaimed[wl]! {
+                    claimed = claimed + 1
+                }
+            }
+            return [claimed, self.dayNFTwlClaimed.keys.length]
+        }
+
+        // Get number of WL that have been claimed vs total
+        pub fun wlStats(): [Int] {
+            var claimed = 0
+            for wl in self.wlClaimed.keys {
+                if self.wlClaimed[wl]! {
+                    claimed = claimed + 1
+                }
+            }
+            return [claimed, self.wlClaimed.keys.length]
+        }
 
         // Number of NFT mintable based on holding DayNFTs
         pub fun nbDayNFTwlToMint(address: Address): Int {

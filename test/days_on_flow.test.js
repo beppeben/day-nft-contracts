@@ -157,6 +157,10 @@ describe("days_on_flow", ()=>{
     var [tx, error] = await sendTransaction("claim_dof_wl", [alice], [seriesId, 0.5]);
     expect(error).not.toBeNull();
 
+    // read claiming stats
+    var [result,error] = await executeScript("read_claiming_stats", [seriesId]);
+    expect(result).toEqual([1, 2, 2, 2]);
+
     // make the series publicly claimable
     var args = [seriesId, false, true];
     var [tx, error] = await sendTransaction("set_dof_series_claimable", [myself], args);
