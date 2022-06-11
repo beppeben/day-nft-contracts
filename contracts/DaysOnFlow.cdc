@@ -173,19 +173,19 @@ pub contract DaysOnFlow: NonFungibleToken {
         }
 
         pub fun borrowNFT(id: UInt64): &NonFungibleToken.NFT {
-            return &self.ownedNFTs[id] as &NonFungibleToken.NFT
+            return (&self.ownedNFTs[id] as &NonFungibleToken.NFT?)!
         }
 
         pub fun borrowDOF(id: UInt64): &NFT? {
             if self.ownedNFTs[id] != nil {
-                let ref = &self.ownedNFTs[id] as auth &NonFungibleToken.NFT
-                return ref as! &NFT
+                let ref = &self.ownedNFTs[id] as auth &NonFungibleToken.NFT?
+                return ref as! &NFT?
             }
             return nil
         }
 
         pub fun borrowViewResolver(id: UInt64): &{MetadataViews.Resolver} {
-            let tokenRef = &self.ownedNFTs[id] as auth &NonFungibleToken.NFT
+            let tokenRef = (&self.ownedNFTs[id] as auth &NonFungibleToken.NFT?)!
             let nftRef = tokenRef as! &NFT
             return nftRef as &{MetadataViews.Resolver}
         }
@@ -490,7 +490,7 @@ pub contract DaysOnFlow: NonFungibleToken {
     pub fun getAllSeries(): [&DOFSeries] {
         let answer: [&DOFSeries] = []
         for id in self.allSeries.keys {
-            let element = &self.allSeries[id] as &DOFSeries
+            let element = (&self.allSeries[id] as &DOFSeries?)!
             answer.append(element)
         }
         return answer
@@ -498,7 +498,7 @@ pub contract DaysOnFlow: NonFungibleToken {
 
     // Get a reference to a specific series
     pub fun getSeries(seriesId: UInt64): &DOFSeries {
-        return &self.allSeries[seriesId] as &DOFSeries
+        return (&self.allSeries[seriesId] as &DOFSeries?)!
     }
 
     pub fun createEmptyCollection(): @Collection {
