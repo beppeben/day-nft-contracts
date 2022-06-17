@@ -19,7 +19,7 @@ pub contract DaysOnFlow: NonFungibleToken {
 
     // EVENTS
     pub event ContractInitialized()
-    pub event DOFMinted(id: UInt64, seriesId: UInt64, seriesImage: String, serial: UInt64, saleType: String)
+    pub event Minted(id: UInt64, seriesId: UInt64, seriesImage: String, serial: UInt64, saleType: String)
     pub event Deposit(id: UInt64, to: Address?)
     pub event Withdraw(id: UInt64, from: Address?)
 
@@ -35,32 +35,26 @@ pub contract DaysOnFlow: NonFungibleToken {
 
     // FUNCTIONALITY
 
-    // Wrapper containing the id of a DOF and its series, and its serial
-    pub struct TokenIdentifier {
-        pub let id: UInt64
-        pub let seriesId: UInt64
-        pub let serial: UInt64
-
-        init(_id: UInt64, _seriesId: UInt64, _serial: UInt64) {
-            self.id = _id
-            self.seriesId = _seriesId
-            self.serial = _serial
-        }
-    }
-
     // Represents a DOF item
     pub resource NFT: NonFungibleToken.INFT, MetadataViews.Resolver {
         pub let id: UInt64
         pub let seriesDescription: String
         pub let seriesId: UInt64
         pub let seriesImage: String
+        pub let seriesSmallImage: String
         pub let seriesName: String
         pub let serial: UInt64
+        access(self) let metadata: {String: AnyStruct}
 
         pub fun getViews(): [Type] {
              return [
                 Type<MetadataViews.Display>(),
-                Type<TokenIdentifier>()
+                Type<MetadataViews.Royalties>(),
+                Type<MetadataViews.Editions>(),
+                Type<MetadataViews.ExternalURL>(),
+                Type<MetadataViews.NFTCollectionData>(),
+                Type<MetadataViews.NFTCollectionDisplay>(),
+                Type<MetadataViews.Serial>()
             ]
         }
 
@@ -70,28 +64,71 @@ pub contract DaysOnFlow: NonFungibleToken {
                     return MetadataViews.Display(
                         name: self.seriesName, 
                         description: self.seriesDescription, 
-                        file: MetadataViews.IPFSFile(cid: self.seriesImage, path: nil)
+                        file: MetadataViews.IPFSFile(cid: self.seriesSmallImage, path: nil)
                     )
-                case Type<TokenIdentifier>():
-                    return TokenIdentifier(
-                        _id: self.id,
-                        _seriesId: self.seriesId,
-                        _serial: self.serial
-                    ) 
-            }
 
+                case Type<MetadataViews.Editions>():
+                    let editionInfo = MetadataViews.Edition(name: self.seriesName, number: self.serial, max: nil)
+                    let editionList: [MetadataViews.Edition] = [editionInfo]
+                    return MetadataViews.Editions(
+                        editionList
+                    )
+
+                case Type<MetadataViews.Serial>():
+                    return MetadataViews.Serial(
+                        self.serial
+                    )
+
+                case Type<MetadataViews.Royalties>():
+                    let royalty = MetadataViews.Royalty(recepient: DaysOnFlow.account.getCapability<&AnyResource{FungibleToken.Receiver}>(/public/flowTokenReceiver), cut: 0.05, description: "Default royalty")
+                    return MetadataViews.Royalties([royalty])
+
+                case Type<MetadataViews.ExternalURL>():
+                    return MetadataViews.ExternalURL("https://day-nft.io")
+
+                case Type<MetadataViews.NFTCollectionData>():
+                    return MetadataViews.NFTCollectionData(
+                        storagePath: DaysOnFlow.CollectionStoragePath,
+                        publicPath: DaysOnFlow.CollectionPublicPath,
+                        providerPath: /private/DOFCollectionProviderPath,
+                        publicCollection: Type<&DaysOnFlow.Collection{DaysOnFlow.CollectionPublic}>(),
+                        publicLinkedType: Type<&DaysOnFlow.Collection{DaysOnFlow.CollectionPublic,NonFungibleToken.CollectionPublic, NonFungibleToken.Receiver, MetadataViews.ResolverCollection}>(),
+                        providerLinkedType: Type<&DaysOnFlow.Collection{DaysOnFlow.CollectionPublic,NonFungibleToken.CollectionPublic, NonFungibleToken.Provider, MetadataViews.ResolverCollection}>(),
+                        createEmptyCollectionFunction: (fun (): @NonFungibleToken.Collection {
+                            return <-DaysOnFlow.createEmptyCollection()
+                        })
+                    )
+
+                case Type<MetadataViews.NFTCollectionDisplay>():
+                    let media = MetadataViews.Media(
+                        file: MetadataViews.IPFSFile(cid: self.seriesSmallImage, path: nil),
+                        mediaType: "ipfs"
+                    )
+                    return MetadataViews.NFTCollectionDisplay(
+                        name: self.seriesName,
+                        description: self.seriesDescription,
+                        externalURL: MetadataViews.ExternalURL("https://day-nft.io"),
+                        squareImage: media,
+                        bannerImage: media,
+                        socials: {
+                            "twitter": MetadataViews.ExternalURL("https://twitter.com/day_nft_io")
+                        }
+                    )
+            }
             return nil
         }
 
-        init(_seriesDescription: String, _seriesId: UInt64, _seriesImage: String, _seriesName: String, _serial: UInt64, _saleType: String) {
+        init(_seriesDescription: String, _seriesId: UInt64, _seriesImage: String, _seriesSmallImage: String, _seriesName: String, _serial: UInt64, _saleType: String, _metadata: {String: AnyStruct}) {
             self.id = DaysOnFlow.totalSupply
             self.seriesDescription = _seriesDescription
             self.seriesId = _seriesId
             self.seriesImage = _seriesImage
+            self.seriesSmallImage = _seriesSmallImage
             self.seriesName = _seriesName
             self.serial = _serial
+            self.metadata = _metadata
             
-            emit DOFMinted(
+            emit Minted(
                 id: self.id, 
                 seriesId: _seriesId, 
                 seriesImage: _seriesImage,
@@ -211,9 +248,11 @@ pub contract DaysOnFlow: NonFungibleToken {
         pub var publicClaimable: Bool
         pub let description: String 
         pub let seriesId: UInt64
-        pub let image: String 
+        pub let image: String
+        pub let smallImage: String
         pub let name: String
         pub var totalSupply: UInt64
+        access(self) let metadata: {String: AnyStruct}
 
         // Keeps track of the DayNFT holders that have already claimed
         access(self) let dayNFTwlClaimed: {UInt64: Bool}
@@ -227,8 +266,6 @@ pub contract DaysOnFlow: NonFungibleToken {
         pub let publicPrice: UFix64
         // Items already minted on the public sale
         pub var publicMinted: UInt64
-        // Account used to deposit payments
-        pub let contractAddress: Address
 
         // Get number of DayNFT WL that have been claimed vs total
         pub fun dayNFTwlStats(): [Int] {
@@ -311,7 +348,7 @@ pub contract DaysOnFlow: NonFungibleToken {
             if self.wlClaimed[address]! {
                 panic("Already claimed")
             }
-            let rec = getAccount(self.contractAddress).getCapability(/public/flowTokenReceiver) 
+            let rec = DaysOnFlow.account.getCapability(/public/flowTokenReceiver) 
                         .borrow<&FlowToken.Vault{FungibleToken.Receiver}>()
                         ?? panic("Could not borrow a reference to the Flow receiver")
             rec.deposit(from: <- vault)
@@ -338,7 +375,7 @@ pub contract DaysOnFlow: NonFungibleToken {
             if self.publicMinted >= self.publicSupply {
                 panic("Nothing left on public sale")
             }
-            let rec = getAccount(self.contractAddress).getCapability(/public/flowTokenReceiver) 
+            let rec = DaysOnFlow.account.getCapability(/public/flowTokenReceiver) 
                         .borrow<&FlowToken.Vault{FungibleToken.Receiver}>()
                         ?? panic("Could not borrow a reference to the Flow receiver")
             rec.deposit(from: <- vault)
@@ -358,7 +395,7 @@ pub contract DaysOnFlow: NonFungibleToken {
                     return MetadataViews.Display(
                         name: self.name, 
                         description: self.description, 
-                        file: MetadataViews.IPFSFile(cid: self.image, path: nil)
+                        file: MetadataViews.IPFSFile(cid: self.smallImage, path: nil)
                     )
             }
 
@@ -385,9 +422,11 @@ pub contract DaysOnFlow: NonFungibleToken {
                 _seriesDescription: self.description,
                 _seriesId: self.seriesId,
                 _seriesImage: self.image,
+                _seriesSmallImage: self.smallImage,
                 _seriesName: self.name,
                 _serial: serial,
-                _saleType: saleType
+                _saleType: saleType,
+                _metadata: self.metadata
             ) 
             let id = token.id
 
@@ -400,27 +439,29 @@ pub contract DaysOnFlow: NonFungibleToken {
             _wlClaimable: Bool,
             _publicClaimable: Bool,
             _description: String, 
-            _image: String, 
+            _image: String,
+            _smallImage: String, 
             _name: String,
             _dayNFTwl: [UInt64],    // List of DayNFT ids giving right to an item
             _wl: [Address],         // List of WL addresses
             _wlPrice: UFix64,
             _publicSupply: UInt64,
             _publicPrice: UFix64,
-            _contractAddress: Address
+            _metadata: {String: AnyStruct}
         ) {
             self.wlClaimable = _wlClaimable
             self.publicClaimable = _publicClaimable
             self.description = _description
             self.seriesId = self.uuid
             self.image = _image
+            self.smallImage = _smallImage
             self.name = _name
             self.totalSupply = 0
             self.wlPrice = _wlPrice
             self.publicSupply = _publicSupply
             self.publicPrice = _publicPrice
             self.publicMinted = 0
-            self.contractAddress = _contractAddress
+            self.metadata = _metadata
 
 
             self.dayNFTwlClaimed = {}
@@ -444,25 +485,28 @@ pub contract DaysOnFlow: NonFungibleToken {
             _publicClaimable: Bool,
             _description: String, 
             _image: String, 
+            _smallImage: String, 
             _name: String,
             _dayNFTwl: [UInt64],           
             _wl: [Address],
             _wlPrice: UFix64,
             _publicSupply: UInt64,
-            _publicPrice: UFix64) {
+            _publicPrice: UFix64,
+            _metadata: {String: AnyStruct}) {
 
                 let series <- create DOFSeries(
                     _wlClaimable: _wlClaimable,
                     _publicClaimable: _publicClaimable,
                     _description: _description, 
                     _image: _image, 
+                    _smallImage: _smallImage, 
                     _name: _name,
                     _dayNFTwl: _dayNFTwl,           
                     _wl: _wl,
                     _wlPrice: _wlPrice,
                     _publicSupply: _publicSupply,
                     _publicPrice: _publicPrice,
-                    _contractAddress: DaysOnFlow.account.address
+                    _metadata: _metadata
                 )
 
                 let seriesId = series.seriesId

@@ -4,12 +4,14 @@ transaction(_wlClaimable: Bool,
             _publicClaimable: Bool,
             _description: String, 
             _image: String, 
+            _smallImage: String,
             _name: String,
             _dayNFTwl: [UInt64],           
             _wl: [Address],
             _wlPrice: UFix64,
             _publicSupply: UInt64,
-            _publicPrice: UFix64) {
+            _publicPrice: UFix64,
+            _metadata: {String: AnyStruct}) {
     
     prepare(signer: AuthAccount) {
 
@@ -20,12 +22,14 @@ transaction(_wlClaimable: Bool,
             _publicClaimable: _publicClaimable,
             _description: _description, 
             _image: _image, 
+            _smallImage: _smallImage, 
             _name: _name,
             _dayNFTwl: _dayNFTwl,           
             _wl: _wl,
             _wlPrice: _wlPrice,
             _publicSupply: _publicSupply,
-            _publicPrice: _publicPrice)
+            _publicPrice: _publicPrice,
+            _metadata: _metadata)
     }
 }
  
