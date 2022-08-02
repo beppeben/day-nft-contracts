@@ -64,7 +64,9 @@ pub contract DaysOnFlow: NonFungibleToken {
                     return MetadataViews.Display(
                         name: self.seriesName, 
                         description: self.seriesDescription, 
-                        file: MetadataViews.IPFSFile(cid: self.seriesSmallImage, path: nil)
+                        thumbnail: MetadataViews.HTTPFile(
+                            url: "https://day-nft.io/".concat(self.seriesSmallImage).concat(".jpg")
+                        )
                     )
 
                 case Type<MetadataViews.Editions>():
