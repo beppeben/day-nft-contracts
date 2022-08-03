@@ -396,7 +396,7 @@ pub contract DayNFT: NonFungibleToken {
                     )
                     return MetadataViews.NFTCollectionDisplay(
                         name: "DayNFT",
-                        description: "One NFT per day, storing memories on Flow. Half of daily auction proceeds get distributed to holders.",
+                        description: "One NFT per day, storing memories on Flow. Half of daily auction proceeds gets distributed back to holders.",
                         externalURL: MetadataViews.ExternalURL("https://day-nft.io"),
                         squareImage: logo,
                         bannerImage: header,
