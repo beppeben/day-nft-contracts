@@ -366,7 +366,7 @@ pub contract DayNFT: NonFungibleToken {
                     )
 
                 case Type<MetadataViews.Royalties>():
-                    let royalty = MetadataViews.Royalty(recepient: DayNFT.account.getCapability<&AnyResource{FungibleToken.Receiver}>(/public/flowTokenReceiver), cut: 0.05, description: "Default royalty")
+                    let royalty = MetadataViews.Royalty(recepient: DayNFT.account.getCapability<&AnyResource{FungibleToken.Receiver}>(DayNFT.AdminPublicPath), cut: 0.1, description: "Default royalty")
                     return MetadataViews.Royalties([royalty])
 
                 case Type<MetadataViews.ExternalURL>():
