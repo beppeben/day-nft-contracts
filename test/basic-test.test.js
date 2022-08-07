@@ -17,7 +17,7 @@ async function deployAll() {
 describe("basic-test", ()=>{
   beforeEach(async () => {
     const basePath = path.resolve(__dirname, ".."); 
-    const port = 8080; 
+    const port = 8081; 
     const logging = false;
     
     await init(basePath, { port });
@@ -196,6 +196,13 @@ describe("basic-test", ()=>{
     var exp_res = {"date": {"day": 25, "month": 1, "year": 2021}, "dateStr": "25-01-2021", "description": "Minted on day-nft.io on 25-01-2021", "id": 0, "name": "DAY-NFT #25-01-2021", "thumbnail": "https://day-nft.io/imgs/0.png", "title": "hello world2"}
     exp_res["uuid"] = result["uuid"]
     expect(result).toEqual(exp_res);
+    
+    // read NFT traits
+    var [result,error] = await executeScript("read_nft_traits", [bob, 0]);
+    expect(result.traits[0].rarity.description).toEqual("OG");
+    expect(result.traits[0].rarity.score).toEqual("0.00000000");
+    expect(result.traits[0].value).toEqual("25-01-2021");
+    expect(result.traits[1].value).toEqual("01-2021");
 
     // verify if bob has any flow to claim
     var [result,error] = await executeScript("read_tokens_to_claim", [bob]);
